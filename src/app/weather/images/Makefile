@@ -1,0 +1,13 @@
+CC=gcc
+CFLAGS=-g -Wall
+all: owm_01d_64px owm_01n_64px owm_02d_64px owm_02n_64px \
+owm_03d_64px owm_03n_64px owm_04d_64px owm_04n_64px owm_09d_64px owm_09n_64px \
+owm_10d_64px owm_10n_64px owm_11d_64px owm_11n_64px owm_13d_64px owm_13n_64px \
+owm_50d_64px owm_50n_64px
+
+.PHONY:
+clean:
+	$(RM) *~ *.o owm_01d_64px owm_01n_64px owm_02d_64px owm_02n_64px \
+owm_03d_64px owm_03n_64px owm_04d_64px owm_04n_64px owm_09d_64px owm_09n_64px \
+owm_10d_64px owm_10n_64px owm_11d_64px owm_11n_64px owm_13d_64px owm_13n_64px \
+owm_50d_64px owm_50n_64px
