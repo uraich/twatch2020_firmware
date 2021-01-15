@@ -21,8 +21,6 @@ class MainBar():
     TILE_Y = const(4)
     TILE_ID = const(5)
 
-    SDL = 0
-    TWATCH = 1
     exit_icon_dsc = None
     setup_icon_dsc = None
     
@@ -152,16 +150,12 @@ class MainBar():
 
     def get_image_dsc(self,filename):
         
-        self.log.debug("Creating " + filename + " icon")
-        sdl_filename = 'images/' + filename + "_argb8888.bin"
-        self.log.debug('sdl filename: ' + sdl_filename)
- 
+        self.log.debug("Creating " + filename + " icon") 
         try:
             sdl_filename = 'images/' + filename + "_argb8888.bin"
             self.log.debug('sdl filename: ' + sdl_filename)
             with open(sdl_filename,'rb') as f:
                 self.icon_data = f.read()
-                self.driver = self.SDL
                 self.log.debug(sdl_filename + " successfully read")
         except:
             twatch_filename = 'images/' + filename + "_argb565.bin"
@@ -169,8 +163,7 @@ class MainBar():
             try:
                 with open(twatch_filename,'rb') as f:
                     self.icon_data = f.read()
-                    self.driver = self.TWATCH
-                    log.debug(twatch_filename + " successfully read")
+                    self.log.debug(twatch_filename + " successfully read")
                     
             except:
                 self.log.error("Could not find image file: " + filename) 

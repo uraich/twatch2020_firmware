@@ -32,7 +32,11 @@ class GUI():
         self.wallpaper = lv.img(lv.scr_act(),None)
         self.wallpaper.set_width(lv.scr_act().get_disp().driver.hor_res)
         self.wallpaper.set_height(lv.scr_act().get_disp().driver.ver_res)
+        self.set_background_image(self.wallpaper_images[2])
         self.wallpaper.align(None, lv.ALIGN.CENTER, 0, 0)
+        
+        self.statusbar = StatusBar(self.mainbar)
+
         self.mainbar = MainBar(lv.scr_act())
 
         # add the four mainbar screens
@@ -46,9 +50,6 @@ class GUI():
         
         # add setup
         battery_settings_tile = BatterySettingsTile(self.mainbar)
-
-        self.statusbar = StatusBar(self.mainbar)
-        self.set_background_image(self.wallpaper_images[2])
 
     def set_background_image(self,image_filename):
         SDL=0
@@ -65,7 +66,7 @@ class GUI():
         except:
             try:
                 with open('/images/'+self.twatch_filename,'rb') as f:
-                    img__data = f.read()
+                    img_data = f.read()
                     self.log.debug(self.twatch_filename + " successfully read")
                     driver = TWATCH
             except:

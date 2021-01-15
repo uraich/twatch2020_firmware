@@ -59,7 +59,7 @@ class AppTile():
                         log.debug(twatch_filename + " successfully read")
                         
                 except:
-                    log.error("Could not find image file: ",filename) 
+                    log.error("Could not find image file: " + filename) 
                     
             self.app_icon_dsc[i] = lv.img_dsc_t(
                 {

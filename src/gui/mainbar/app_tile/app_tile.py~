@@ -7,7 +7,7 @@ try:
 except:
     import logging
 
-class AppsTile():    
+class AppTile():    
     MAX_APPS_ICON_HORZ =     3
     MAX_APPS_ICON_VERT =     2
     MAX_APPS_TILES     =     2
