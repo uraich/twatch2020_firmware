@@ -10,12 +10,11 @@ int main(int argc, char ** argv){
   FILE *infile,*outfile;
   char *outfileName;
   char *filenameRest;
-  int width,height;
   unsigned char red,green,blue;
   unsigned char *inbuf,*outbuf,*inbufPtr,*outbufPtr;
   int fileSize,i;
 
-  if (argc != 4) {
+  if (argc != 2) {
     printf("Usage: %s filename width height\n",argv[0]);
     exit(-1);
   }
@@ -28,9 +27,6 @@ int main(int argc, char ** argv){
   printf("filename base: %s\n",filenameRest);
   strcpy(filenameRest,"_argb8888.bin");
   printf("Output file name: %s\n",outfileName);
-  width = atoi(argv[2]);
-  height = atoi(argv[3]);
-  printf("width: %d, height: %d\n",width,height);
   
   infile = fopen(argv[1],"r");
   if (infile == NULL) {

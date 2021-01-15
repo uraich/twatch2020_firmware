@@ -11,13 +11,13 @@ int main(int argc, char ** argv){
   char *outfileName,*filenameRest;
   unsigned char *inbuf,*outbuf,*inbufPtr,*outbufPtr;
   unsigned char red,green,blue,opacity,col_high_byte,col_low_byte;
-  int fileSize,i,width,height;
+  int i,fileSize;
   
-  if (argc != 4) {
-    printf("Usage: %s filename width height\n",argv[0]);
+  if (argc != 2) {
+    printf("Usage: %s filename\n",argv[0]);
     exit(-1);
   }
-  outfileName = malloc(strlen(argv[1])-2);
+  outfileName = malloc(strlen(argv[1])-1);
   strcpy(outfileName,argv[1]);
   if ((filenameRest=strstr(outfileName,"_argb8888.bin")) == NULL) {
     printf("File must be named xxx_argb8888.bin");
@@ -26,10 +26,7 @@ int main(int argc, char ** argv){
   printf("filename base: %s\n",filenameRest);
   strcpy(filenameRest,"_argb565.bin");
   printf("Output file name: %s\n",outfileName);
-  width = atoi(argv[2]);
-  height = atoi(argv[3]);
-  printf("width: %d, height: %d\n",width,height);
-  
+
   infile = fopen(argv[1],"r");
   if (infile == NULL) {
     printf("Could not open %s\n",argv[1]);
@@ -42,10 +39,12 @@ int main(int argc, char ** argv){
   rewind(infile);
 
   inbuf = malloc(fileSize);
-  outbuf = malloc(fileSize*3/2);
-  
+  outbuf = malloc(fileSize*3/4);
+
   fread(inbuf, fileSize, 1, infile);
   fclose(infile);
+
+
     
   for (i=0; i<16;i++)
     printf("0x%02x ",inbuf[i]);
@@ -77,7 +76,7 @@ int main(int argc, char ** argv){
     printf("Could not open %s",outfileName);
     exit(-1);
   }
-  fwrite(outbuf, fileSize/2, 1, outfile);
+  fwrite(outbuf, fileSize*3/4, 1, outfile);
   fclose(outfile);
     
 }
