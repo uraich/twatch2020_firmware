@@ -1,15 +1,32 @@
 import lvgl as lv
 from constants import Constants
+from gui.app import App
 from micropython import const
 from lv_colors import lv_colors
+
 try:
     import ulogging as logging
 except:
     import logging
-    
+
+class Tile():
+    def __init__(self):
+        self.tile = None
+        self.x = None
+        self.y = None
+        self.hibernate_cb = None
+        self.activate_cb = None
+
+class TilePos():
+    def __init__(self):
+        x = None
+        x = None
+        
 class MainBar():
     
     tile_table = []
+    tile_pos_table = []
+    
     current_tile = 0
     tile_entries = 0
     app_tile_pos = Constants.MAINBAR_APP_TILE_X_START
@@ -25,10 +42,15 @@ class MainBar():
     setup_icon_dsc = None
     
     def __init__(self,parent):
+
+        self.main_tile=None
+        self.note_tile=None
         
+        self.gui = None
+        self.pcf8563 = None
         self.log = logging.getLogger("mainbar")
         self.log.setLevel(logging.DEBUG)
-        
+ 
         self.mainbar_style=lv.style_t()
         self.mainbar_style.init()
         self.mainbar_style.set_radius(lv.obj.PART.MAIN, 0 )
@@ -61,7 +83,7 @@ class MainBar():
 
         self.exit_icon_dsc = self.get_image_dsc('exit_32px')
         self.setup_icon_dsc = self.get_image_dsc('setup_32px')
-
+        self.app = App(self)
 
     def get_style(self):
         return self.mainbar_style
@@ -75,31 +97,32 @@ class MainBar():
     def get_slider_style(self):
         return(self.slider_style)
     
-    def add_tile(self,x,y,id):
-        
+    def add_tile(self,x,y,id):        
+        self.log.debug("add tile no %d: x: %d y: %d, id= %s"%(self.tile_entries,x,y,id))
         self.tile_entries +=1
-        
-        tile = lv.cont(self.mainbar,None)
+        new_tile = Tile()
+        new_tile.tile = lv.cont(self.mainbar,None)
         hor_res = lv.scr_act().get_disp().driver.hor_res
         ver_res = lv.scr_act().get_disp().driver.ver_res
-        tile.set_width(hor_res)
-        tile.set_height(ver_res)
-        tile.set_pos(hor_res*x,ver_res*y)   
-        tile.add_style(lv.obj.PART.MAIN, self.mainbar_style)
-        tile_table_entry = (tile,None,None,x,y,id)
-        self.tile_table.append(tile_table_entry)
-        self.mainbar.add_element(tile)
-        valid_pos = []
-        for i in range(len(self.tile_table)):
-            valid_pos.append({'x':self.tile_table[i][3],'y':self.tile_table[i][4]})
+        new_tile.tile.set_width(hor_res)
+        new_tile.tile.set_height(ver_res)
+        new_tile.tile.set_pos(hor_res*x,ver_res*y)   
+        new_tile.tile.add_style(lv.obj.PART.MAIN, self.mainbar_style)
+        new_tile.x = x
+        new_tile.y = y
+        new_tile.id = id
+        self.tile_table.append(new_tile)
+        self.mainbar.add_element(new_tile.tile)
+        new_pos = lv.point_t()
+        new_pos.x = x
+        new_pos.y = y
+        self.tile_pos_table.append(new_pos)
+        self.tile_table[self.tile_entries-1].tile.add_style(lv.obj.PART.MAIN,self.mainbar_style)
+        self.tile_table[self.tile_entries-1].tile.set_pos(self.tile_pos_table[self.tile_entries - 1].x * lv.scr_act().get_disp().driver.hor_res,
+                                                          self.tile_pos_table[self.tile_entries - 1].y * lv.scr_act().get_disp().driver.ver_res)
+        self.mainbar.set_valid_positions(self.tile_pos_table,self.tile_entries)
         
-        self.mainbar.set_valid_positions(valid_pos,len(valid_pos))
-      
-        self.log.debug("add tileno %d: x: %d, y: %d, id: %s"%(self.tile_entries,
-                                                              tile_table_entry[self.TILE_X],
-                                                              tile_table_entry[self.TILE_Y],
-                                                              tile_table_entry[self.TILE_ID]))
-        return tile
+        return (self.tile_entries -1)
 
     def add_tile_hibernate_cb(self,tile_number,hibernate_cb):
         if tile_number < self.tile_entries:
@@ -114,38 +137,55 @@ class MainBar():
             self.log.error("tile number %d does not exist"%tile_number)
 
     def add_app_tile(self,x,y,id):
-        tile_no = self.tile_entries+1 
+        self.log.debug("Add app tile")
+        retval = -1
         for hor in range(x):
             for ver in range(y):
-                self.add_tile( hor + self.app_tile_pos, ver + Constants.MAINBAR_APP_TILE_Y_START, id )        
-        return tile_no
+                if retval == -1:
+                    retval = self.add_tile( hor + self.app_tile_pos, ver + Constants.MAINBAR_APP_TILE_Y_START, id )
+                else:
+                    self.add_tile( hor + self.app_tile_pos, ver + Constants.MAINBAR_APP_TILE_Y_START, id )
+
+        self.app_tile_pos = self.app_tile_pos + x + 1
+        return retval
 
     def get_tile_obj(self,tile_number):
         if tile_number < self.tile_entries:
-            return self.tile_table[tile_number][TILE]
+            self.log.debug("get_tile_obj: tile number: %d x: %d, y: %d, id: %s "%(
+                tile_number,
+                self.tile_table[tile_number].x,
+                self.tile_table[tile_number].y,
+                self.tile_table[tile_number].id))
+            return self.tile_table[tile_number].tile
 
     def jump_to_tilenumber(self,tile_num,anim):
         if tile_num < self.tile_entries:
             self.log.debug("jump to tile %d from tile %d"%(tile_num,self.current_tile))
-            self.mainbar._set_tile_act(self.tile_table[tile_num][TILE_X],
-                                       self.tile_table[tile_num][TILE_Y])
+            self.mainbar.set_tile_act(self.tile_table[tile_num].x,
+                                       self.tile_table[tile_num].y,anim)
             # call hibernate_cb if callback exists
-            if self.tile_table[self.current_tile][HIBERNATE_CB]:
-                self.log.debug("call hibernate cb for tile: %d"%self.current_tile)
-                self.tile_table[self.current_tile][HIBERNATE_CB]
+            if self.tile_table[tile_num].hibernate_cb:
+                self.log.debug("call hibernate cb for tile: %d"%tile_num)
+                self.tile_table[self.current_tile].hibernate_cb
                 
             # call activate_cb for new tile if callback exists
-            if self.tile_table[self.tile_num][ACTIVATE_CB]:
+            if self.tile_table[tile_num].activate_cb:
                 self.log.debug("call activate cb for tile %d"%tile_num)
-                self.tile_table[self.current_tile][ACTIVATE_CB]
+                self.tile_table[self.current_tile].activate_cb
             self.current_tile = tile_num
         else:
             self.log.error("tile number: %d does not exist"%tile_num)
 
+    def jump_to_maintile(self,anim):
+        self.jump_to_tilenumber(0,anim)
+        
+    def add_slide_element(self,element):
+        self.mainbar.add_element(element)
+
     def get_exit_btn_dsc(self):
         return self.exit_icon_dsc
 
-    def get_setup_dsc(self):
+    def get_setup_btn_dsc(self):
         return self.setup_icon_dsc
 
     def get_image_dsc(self,filename):
@@ -176,3 +216,10 @@ class MainBar():
             }
         )
         return self.icon_dsc
+
+    def obj_create(self,parent):
+        child = lv.obj(parent,None)
+        self.mainbar.add_element(child)
+        return child
+        
+    

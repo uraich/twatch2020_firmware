@@ -53,6 +53,9 @@ class Splashscreen():
         self.label.align(self.image,lv.ALIGN.IN_BOTTOM_MID,0,50)
         
 
+    def set_label(self,text):
+        self.label.set_text(text)
+        
     def deinit(self):
         self.image.delete()
         self.label.delete()

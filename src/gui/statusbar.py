@@ -3,14 +3,8 @@ import lvgl as lv
 from lv_colors import lv_colors
 from micropython import const
 from constants import Constants
-try:
-    import ulogging as logging
-except:
-    import logging
 
 class StatusBar():
-    SDL    = 0
-    TWATCH = 1
     
     STATUSBAR_STYLE_NORMAL = const(0)
     STATUSBAR_STYLE_WHITE  = const(1)
@@ -23,21 +17,28 @@ class StatusBar():
 
 
     def __init__(self,parent):
+        try:
+            import ulogging as logging
+        except:
+            import logging
+
+        self.log = logging.getLogger("StatusBar")
+        self.log.setLevel(logging.DEBUG)
+        
         # read icons        
         sdl_filename = 'images/foot_16px_argb8888.bin'
         try:
             with open(sdl_filename,'rb') as f:
                 self.foot_icon_data = f.read()
-                self.driver = self.SDL
-            print(sdl_filename + " successfully read")
+            self.log.debug(sdl_filename + " successfully read")
         except:
             twatch_filename = 'images/foot_16px_argb565.bin'
             try:
                 with open(twatch_filename,'rb') as f:
                     self.foot_icon_data= f.read()
-                    self.driver = self.TWATCH
+                    self.log.debug(twatch_filename + " successfully read")
             except:
-                print("Could not find image file: 'images/foot_16px_argbxxx.bin") 
+                self.log.error("Could not find image file: 'images/foot_16px_argbxxx.bin") 
              
 
         self.foot_icon_dsc = lv.img_dsc_t(
@@ -126,3 +127,5 @@ class StatusBar():
         self.step_counter.set_text('0')
         self.step_counter.align(self.step_icon,lv.ALIGN.OUT_RIGHT_MID, 3, 0)
 
+    def hide(self,hide):
+        self.status_bar.set_hidden(hide)

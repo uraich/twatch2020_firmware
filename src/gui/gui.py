@@ -7,8 +7,16 @@ from gui.mainbar.mainbar import MainBar
 from gui.mainbar.main_tile.main_tile import MainTile
 from gui.mainbar.app_tile.app_tile import AppTile
 from gui.mainbar.note_tile.note_tile import NoteTile
-from gui.mainbar.setup_tile.setup_tile import SetupTile
+from gui.mainbar.setup_tile.setup_tile  import SetupTile
 from gui.mainbar.setup_tile.battery_settings.battery_settings import BatterySettingsTile
+from gui.widget import Widget
+from app.example_app.example_app import ExampleApp
+from app.stopwatch.stopwatch_app import Stopwatch
+from app.calculator.calculator_app import Calculator
+from app.calendar.calendar_app import Calendar
+from app.analogue_clock.analogue_clock_app import AnalogueClock
+from app.alarm_clock.alarm_clock_app import AlarmClock
+from app.weather.metaweather_app import WeatherApp
 
 try:
     import ulogging as logging
@@ -22,12 +30,14 @@ class GUI():
     note_tile = None
     setup_tile = None
     status_bar = None
+    widget = None
     battery_settings_tile = None
     wallpaper_images = ["bg_240px","bg1_240px","bg2_240px","bg3_240px"]
-    def __init__(self):
+
+    def __init__(self,drv):
         self.log = logging.getLogger("gui")
         self.log.setLevel(logging.DEBUG)
-                          
+        
         # create wallpaper
         self.wallpaper = lv.img(lv.scr_act(),None)
         self.wallpaper.set_width(lv.scr_act().get_disp().driver.hor_res)
@@ -35,12 +45,19 @@ class GUI():
         self.set_background_image(self.wallpaper_images[2])
         self.wallpaper.align(None, lv.ALIGN.CENTER, 0, 0)
         
+        self.mainbar = MainBar(lv.scr_act())
+        self.mainbar.gui = self
+        if hasattr(drv,'watch'):
+            self.log.debug("watch exists in drv")
+            self.mainbar.pcf8563 = drv.watch.rtc
+        else:
+            self.log.debug("could not pass drv to mainbar")
         self.statusbar = StatusBar(self.mainbar)
 
-        self.mainbar = MainBar(lv.scr_act())
-
+        
         # add the four mainbar screens
         self.main_tile = MainTile(self.mainbar)
+        self.mainbar.main_tile = self.main_tile
         self.log.debug("Creating app tile")                          
         self.app_tile = AppTile(self.mainbar)
         self.log.debug("Creating Note tile")
@@ -48,8 +65,19 @@ class GUI():
         self.log.debug("Creating Setup tile")
         self.setup_tile = SetupTile(self.mainbar)
         
+        self.widget = Widget(self.mainbar)
+        self.mainbar.widget = self
+
+        # add apps
+        example_app = ExampleApp(self.mainbar)
+        calculator_app = Calculator(self.mainbar)
+        calendar_app = Calendar(self.mainbar)
+        aclock = AnalogueClock(self.mainbar)
+        alarm_clock = AlarmClock(self.mainbar)
+        stopwatch_app = Stopwatch(self.mainbar)
+        weather_app = WeatherApp(self.mainbar)
         # add setup
-        battery_settings_tile = BatterySettingsTile(self.mainbar)
+        # battery_settings_tile = BatterySettingsTile(self.mainbar)
 
     def set_background_image(self,image_filename):
         SDL=0

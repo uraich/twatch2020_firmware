@@ -11,10 +11,11 @@ log = logging.getLogger("note_tile")
 log.setLevel(logging.DEBUG)
 
 class NoteTile():
-    def __init__(self,parent):
-        note_tile =  parent.add_tile( 0, 1, "note tile" )
+    def __init__(self,mainbar):
+        note_tile_no =  mainbar.add_tile( 0, 1, "note tile" )
+        note_tile = mainbar.get_tile_obj(note_tile_no)
         log.debug("Creating note tile")
-        style = parent.get_style()
+        style = mainbar.get_style()
         note_style = lv.style_t()
         note_style.copy(style)
         note_style.set_text_opa(lv.obj.PART.MAIN, lv.OPA._30)

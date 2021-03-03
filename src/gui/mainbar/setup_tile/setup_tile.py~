@@ -1,83 +1,78 @@
-#!/opt/bin/lv_micropython -i
 import lvgl as lv
-from lv_colors import lv_colors
+from constants import Constants
+from gui.app import App
 from micropython import const
+from lv_colors import lv_colors
+from gui.icon import Icon
 try:
     import ulogging as logging
 except:
     import logging
-
-class SetupTile():    
-    MAX_SETUP_ICON_HORZ =     3
-    MAX_SETUP_ICON_VERT =     2
-    MAX_SETUP_TILES     =     2
-    MAX_SETUP_ICON      =     MAX_SETUP_ICON_HORZ * MAX_SETUP_ICON_VERT * MAX_SETUP_TILES
-
-    setup_icon_files=['battery_icon_64px','brightness_64px','move_64px',
-                      'wifi_64px','bluetooth_64px','time_64px',
-                      'update_64px','utilities_64px','sound_64px']
-    setup_names = ['battery','display', 'steps',
-                   'wifi','bluetooth','time',
-                   'update','utilities','sound']
     
-    def __init__(self,parent):
-        tiles = []
-        log = logging.getLogger("Setup")
-        log.setLevel(logging.DEBUG)
-        self.SDL=0
-        self.TWATCH=1
-        y=1
-        for tile_no in range(self.MAX_SETUP_TILES):
+class SetupTile():
+    
+    def __init__(self,mainbar):
+        self.setup_table = [None]*Constants.MAX_SETUP_ICON
+        self.setup_tiles = []
+        self.log = logging.getLogger("Setup")
+        self.log.setLevel(logging.DEBUG)
+
+        y = 1
+        for tile_no in range(Constants.MAX_SETUP_TILES):
             id = "setup tile %s"%(tile_no+1)
-            tiles.append(parent.add_tile(tile_no+1,y,id))  
-        # for i in range(len(self.app_icon_files)):
-        for i in range(len(self.setup_icon_files)):
-            if i > self.MAX_SETUP_ICON:
-                log.error("Too many setup programs")
-                break;
-            self.setup_icon_data = [None]*self.MAX_SETUP_ICON
-            self.setup_icon_dsc = [None]*self.MAX_SETUP_ICON
-            self.setup_buttons=[None]*self.MAX_SETUP_ICON
-            self.setup_labels=[None]*self.MAX_SETUP_ICON
+            tile_num = mainbar.add_tile(tile_no+1,y,id)
+            self.setup_tiles.append(mainbar.get_tile_obj(tile_num))
+
+        self.style = lv.style_t()
+        self.style.copy(mainbar.mainbar_style)
+
+        #
+        # create the setup_table
+        #
+        for i in range(Constants.MAX_SETUP_ICON):
+            self.setup_table[i]=Icon()
+            self.setup_table[i].active=False
+            self.setup_table[i].x = Constants.SETUP_FIRST_X_POS+((i % Constants.MAX_SETUP_ICON_HORZ )
+                                                                 * (Constants.SETUP_ICON_X_SIZE + Constants.SETUP_ICON_X_CLEARENCE))
+            self.setup_table[i].y = Constants.SETUP_FIRST_Y_POS+(((i % (Constants.MAX_SETUP_ICON_VERT * Constants.MAX_SETUP_ICON_HORZ)) //
+                                                                  Constants.MAX_SETUP_ICON_HORZ)*
+                                                                 (Constants.SETUP_ICON_Y_SIZE + Constants.SETUP_ICON_Y_CLEARENCE))
+
+            # create app icon container
+            self.setup_table[i].cont = mainbar.obj_create( self.setup_tiles[ i // ( Constants.MAX_SETUP_ICON_HORZ * Constants.MAX_SETUP_ICON_VERT)])
             
-            filename = self.setup_icon_files[i]
-            try:
-                sdl_filename = 'images/' + filename + "_argb8888.bin"
-                log.debug('sdl filename: ' + sdl_filename)
-                with open(sdl_filename,'rb') as f:
-                    self.setup_icon_data[i] = f.read()
-                    self.driver = self.SDL
-                    log.debug(sdl_filename + " successfully read")
-            except:
-                twatch_filename = 'images/' + filename + "_argb565.bin"
-                log.debug('t-watch filename: ' + twatch_filename)
-                try:
-                    with open(twatch_filename,'rb') as f:
-                        self.setup_icon_data[i]= f.read()
-                        self.driver = self.TWATCH
-                        log.debug(twatch_filename + " successfully read")
-                        
-                except:
-                    log.error("Could not find image file: " + filename) 
-                    
-            self.setup_icon_dsc[i] = lv.img_dsc_t(
-                {
-                    "header": {"always_zero": 0, "w": 64, "h": 64, "cf": lv.img.CF.TRUE_COLOR_ALPHA},
-                    "data": self.setup_icon_data[i],
-                    "data_size": len(self.setup_icon_data[i]),
-                }
-            )
-            #
-            # create the img buttons allowing to start the settings
-            #
-            x_pos = i%3 * 76 +12
-            y_pos = (i-6*(i//6))//3 * 100 + 40
-            print("x_pos: %d, y_pos: %d"%(x_pos,y_pos))
+            self.setup_table[i].cont.add_style(lv.obj.PART.MAIN,self.style )
+            self.setup_table[i].cont.set_size(Constants.SETUP_ICON_X_SIZE, Constants.SETUP_ICON_Y_SIZE );
+            self.setup_table[i].cont.align(self.setup_tiles[i // ( Constants.MAX_SETUP_ICON_HORZ * Constants.MAX_SETUP_ICON_VERT ) ],
+                                           lv.ALIGN.IN_TOP_LEFT, self.setup_table[i].x, self.setup_table[i].y );
 
-            self.setup_buttons[i] = lv.imgbtn(tiles[i//6],None)
-            self.setup_buttons[i].set_src(lv.btn.STATE.RELEASED,self.setup_icon_dsc[i])
-            self.setup_buttons[i].align(tiles[i//6],lv.ALIGN.IN_TOP_LEFT, x_pos, y_pos)
+            # create app label
+            self.setup_table[i].label= lv.label(self.setup_tiles[i//(Constants.MAX_SETUP_ICON_HORZ * Constants.MAX_SETUP_ICON_VERT)],None)
+            mainbar.add_slide_element(self.setup_table[i].label);
+            
+            self.setup_table[i].label.add_style(lv.obj.PART.MAIN,self.style)
+            self.setup_table[i].label.set_size(Constants.SETUP_LABEL_X_SIZE, Constants.SETUP_LABEL_Y_SIZE)
+            self.setup_table[i].label.align( self.setup_table[i].cont, lv.ALIGN.OUT_BOTTOM_MID, 0, 0 )
+            
+            self.setup_table[i].cont.set_hidden(True)
+            self.setup_table[i].label.set_hidden(True)
+            
+            self.log.debug("icon screen/x/y: %d/%d/%d"%(i // ( Constants.MAX_SETUP_ICON_HORZ * Constants.MAX_SETUP_ICON_VERT ),
+                                                        self.setup_table[i].x, self.setup_table[i].y))
 
-            self.setup_labels[i] = lv.label(tiles[i//6],None)
-            self.setup_labels[i].set_text(self.setup_names[i])
-            self.setup_labels[i].align(self.setup_buttons[i],lv.ALIGN.OUT_BOTTOM_MID,0,0)
+    def register_setup(self):
+        for i in range(Constants.MAX_SETUP_ICON):
+            if not self.setup_table[i].active:
+                self.setup_table[i].active = True
+                self.setup_table[i].cont.set_hidden(False)
+                return self.setup_table[i]
+        self.log.error("No space for new setup icon")
+        return None
+
+    def get_free_setup_icon(self):
+        for i in range(Constants.MAX_SETUP_ICON):
+            if not self.setup_table[i].active:
+                self.setup_table[i].active = True
+                return self.setup_table[i]
+        self.log.error("No space for new setup icon")
+        return None

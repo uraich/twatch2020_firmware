@@ -10,18 +10,19 @@ except:
 
 class BatterySettingsTile():
     
-    def __init__(self,parent):
+    def __init__(self,mainbar):
         self.log = logging.getLogger("battery settings")
         self.log.setLevel(logging.DEBUG)
         
         # get an app tile and copy mainstyle
     
-        battery_settings_tile_num = parent.add_app_tile( 1, 2, "battery setup" )
+        battery_settings_tile_num = mainbar.add_app_tile( 1, 2, "battery setup" )
         self.log.debug("Battery settings tile number: %d"%battery_settings_tile_num)
         battery_settings_tile = parent.get_tile_obj( battery_settings_tile_num + 1 );
 
         battery_settings_style = lv.style_t()
         battery_settings_style.copy(parent.get_style())
+        
 
     def get_exit_icon(self):
         pass

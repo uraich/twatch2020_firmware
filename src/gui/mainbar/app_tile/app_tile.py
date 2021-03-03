@@ -2,89 +2,82 @@
 import lvgl as lv
 from lv_colors import lv_colors
 from micropython import const
-try:
-    import ulogging as logging
-except:
-    import logging
+from constants import Constants
+from gui.icon import Icon
 
-class AppTile():    
-    MAX_APPS_ICON_HORZ =     3
-    MAX_APPS_ICON_VERT =     2
-    MAX_APPS_TILES     =     2
-    MAX_APPS_ICON      =     MAX_APPS_ICON_HORZ * MAX_APPS_ICON_VERT * MAX_APPS_TILES
-
-    app_icon_files=['message_64px','weather_64px','mondaine_clock_64px',
-                    'stopwatch_64px','alarm_clock_64px','calendar_64px',
-                    'powermeter_64px','calculator_64px','status_64px']
-    app_names = ['messages','weather\napp', 'analog\nclock',
-                 'stop\nwatch','alarm clock','calendar',
-                 'power\nmeter','calculator','status']
+class AppTile():
+    app_entry = [None] * Constants.MAX_APPS_ICON
+    app_cont  = [None] * Constants.MAX_APPS_TILES
+    app_tile_num = [None] * Constants.MAX_APPS_TILES
     
-    def __init__(self,parent):
-        tiles = []
-        log = logging.getLogger("App")
+    def __init__(self,mainbar):
+        try:
+            import ulogging as logging
+        except:
+            import logging
+
+        log = logging.getLogger("AppTile")
         log.setLevel(logging.DEBUG)
-        self.SDL=0
-        self.TWATCH=1
         y=0
-        for tile_no in range(self.MAX_APPS_TILES):
-            id = "setup tile %s"%(tile_no+1)
-            tiles.append(parent.add_tile(tile_no+1,y,id))
+        for tile_no in range(Constants.MAX_APPS_TILES):
+            id = "app tile %s"%(tile_no+1)
+            app_cont_no = mainbar.add_tile(tile_no+1,y,id)
+            self.app_cont[tile_no] = mainbar.get_tile_obj(app_cont_no)
+            log.debug("added tile no %d"%tile_no)
             
-        self.app_icon_data = [None]*self.MAX_APPS_ICON
-        self.app_icon_dsc = [None]*self.MAX_APPS_ICON
-        self.app_buttons=[None]*self.MAX_APPS_ICON
-        self.app_labels=[None]*self.MAX_APPS_ICON
+        app_style = lv.style_t()
+        app_style.copy(mainbar.get_style())
         
-        for i in range(len(self.app_icon_files)):
-            if i > self.MAX_APPS_ICON:
-                log.error("Too many apps")
-                break
+        # create pool of icons
+        log.debug("Creating pool of %d icons"%Constants.MAX_APPS_ICON)
+        for app in range(Constants.MAX_APPS_ICON):
+            self.app_entry[app] = Icon()
+            self.app_entry[app].x = Constants.APP_FIRST_X_POS + ( ( app % Constants.MAX_APPS_ICON_HORZ ) * ( Constants.APP_ICON_X_SIZE + Constants.APP_ICON_X_CLEARENCE ) )
+            self.app_entry[app].y = Constants.APP_FIRST_Y_POS + ( ( ( app % ( Constants.MAX_APPS_ICON_VERT * Constants.MAX_APPS_ICON_HORZ  ) ) //
+                                                                 Constants.MAX_APPS_ICON_HORZ ) * ( Constants.APP_ICON_Y_SIZE + Constants.APP_ICON_Y_CLEARENCE ) )
+            # create app container
+            tile_no = app // ( Constants.MAX_APPS_ICON_HORZ * Constants.MAX_APPS_ICON_VERT)
+            # print("app tile no: %d x: %x, y: %d"%(tile_no,self.app_entry[app].x,self.app_entry[app].y))
+            self.app_entry[app].cont = lv.obj(self.app_cont[tile_no],None)
+            mainbar.add_slide_element(self.app_entry[app].cont)
+            self.app_entry[app].cont.add_style(lv.obj.PART.MAIN, app_style)
+            # print("type of app_cont: ",type(self.app_cont[tile_no]))
+            self.app_entry[app].cont.set_size( Constants.APP_ICON_X_SIZE, Constants.APP_ICON_Y_SIZE )
+            self.app_entry[app].cont.align(self.app_cont[tile_no],lv.ALIGN.IN_TOP_LEFT, self.app_entry[app].x, self.app_entry[app].y )
             
-            filename = self.app_icon_files[i]
-            try:
-                sdl_filename = 'images/' + filename + "_argb8888.bin"
-                log.debug('sdl filename: ' + sdl_filename)
-                with open(sdl_filename,'rb') as f:
-                    self.app_icon_data[i] = f.read()
-                    self.driver = self.SDL
-                    log.debug(sdl_filename + " successfully read")
-            except:
-                twatch_filename = 'images/' + filename + "_argb565.bin"
-                log.debug('t-watch filename: ' + twatch_filename)
-                try:
-                    with open(twatch_filename,'rb') as f:
-                        self.app_icon_data[i]= f.read()
-                        self.driver = self.TWATCH
-                        log.debug(twatch_filename + " successfully read")
-                        
-                except:
-                    log.error("Could not find image file: " + filename) 
-                    
-            self.app_icon_dsc[i] = lv.img_dsc_t(
-                {
-                    "header": {"always_zero": 0, "w": 64, "h": 64, "cf": lv.img.CF.TRUE_COLOR_ALPHA},
-                    "data": self.app_icon_data[i],
-                    "data_size": len(self.app_icon_data[i]),
-                }
-            )
-            #
-            # create the img buttons allowing to start the apps
-            #
-            x_pos = i%3 * 76 +12
-            y_pos = (i-6*(i//6))//3 * 100 + 40
-            print("x_pos: %d, y_pos: %d"%(x_pos,y_pos))
-
-            self.app_buttons[i] = lv.imgbtn(tiles[i//6],None)
-            self.app_buttons[i].set_src(lv.btn.STATE.RELEASED,self.app_icon_dsc[i])
-            self.app_buttons[i].align(tiles[i//6],lv.ALIGN.IN_TOP_LEFT, x_pos, y_pos)
-            self.app_buttons[i].set_event_cb(self.exec_cb)
+            # create app label
+            self.app_entry[app].label = lv.label(self.app_cont[tile_no ], None )
+            mainbar.add_slide_element(self.app_entry[ app ].label)
+            self.app_entry[app].label.add_style( lv.obj.PART.MAIN, app_style )
+            self.app_entry[app].label.set_size(Constants.APP_LABEL_X_SIZE, Constants.APP_LABEL_Y_SIZE)
+            self.app_entry[app].label.align(self.app_entry[app].cont, lv.ALIGN.OUT_BOTTOM_MID, 0, 30 )
+            self.app_entry[app].cont.set_hidden(True)
+            self.app_entry[app].label.set_hidden(True)
+        
+            log.debug("icon screen/x/y: %d/%d/%d"%(app / ( Constants.MAX_APPS_ICON_HORZ * Constants.MAX_APPS_ICON_VERT ), self.app_entry[ app ].x, self.app_entry[ app ].y ))
             
-            self.app_labels[i] = lv.label(tiles[i//6],None)
-            self.app_labels[i].set_text(self.app_names[i])
-            self.app_labels[i].align(self.app_buttons[i],lv.ALIGN.OUT_BOTTOM_MID,0,0)
+        mainbar.app_tile=self
 
-    def exec_cb(self,source,evt):
-        for i in range(len(self.app_names)):
-            if self.app_buttons[i] == source:
-                print("Pressed: ",self.app_names[i])
+    def register_app(self,appname):
+        for app in range(Constants.MAX_APPS_ICON):
+            print("app: ",app)
+            if not self.app_entry[app].active:
+                self.app_entry[app].active=True # reserve the icon
+                self.app_entry[app].label.set_text(appname)
+                self.app_entry[app].label.align(self.app_entry[app].cont,lv.ALIGN.OUT_BOTTOM_MID, 0, 0)
+                self.app_entry[app].cont.set_hidden(False)
+                self.app_entry[app].label.set_hidden(False)
+                return self.app_entry[app]
+        self.log.error("no space for an app icon")
+        return None
+
+    def get_free_app_icon(self):
+        # get a free icon from the pool
+        for app in range(Constants.MAX_APPS_ICON):
+            if not self.app_entry[app].active:
+                return self.app_entry[app]
+        
+        log.error("no space for an app icon");
+        return None
+
+    
