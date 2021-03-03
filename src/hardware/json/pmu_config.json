@@ -1,0 +1,1 @@
+{"silence_wakeup_interval": 45, "compute_percent": false, "designed_battery_cap": 300, "normal_voltage": 3300, "experimental_powersave_voltage": 2800, "pmu_logging": false, "silence_wakeup_interval_vbplug": 3, "high_charging_target_voltage": false, "normal_powersave_voltage": 3000, "silence_wakeup": false, "experimental_power_save": false}
